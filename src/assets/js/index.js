@@ -12,6 +12,8 @@ let dev = process.env.NODE_ENV === 'dev';
 
 class Splash {
     constructor() {
+        const audio = new Audio('assets/sounds/Introsound.mp3');
+        audio.play();
         this.splash = document.querySelector(".splash");
         this.splashMessage = document.querySelector(".splash-message");
         this.splashAuthor = document.querySelector(".splash-author");
@@ -22,9 +24,9 @@ class Splash {
 
     async startAnimation() {
         let splashes = [
-            { "message": "Je... vie...", "author": "Luuxis" },
-            { "message": "Salut je suis du code.", "author": "Luuxis" },
-            { "message": "Linux n' ai pas un os, mais un kernel.", "author": "Luuxis" }
+            { "message": "Bienvenido!", "author": "White Rabbit Studios®" },
+            { "message": "Hola!", "author": "White Rabbit Studios®" },
+            { "message": "Buen Dia!", "author": "White Rabbit Studios®" }
         ]
         let splash = splashes[Math.floor(Math.random() * splashes.length)];
         this.splashMessage.textContent = splash.message;
@@ -38,23 +40,23 @@ class Splash {
         this.splashMessage.classList.add("opacity");
         this.splashAuthor.classList.add("opacity");
         this.message.classList.add("opacity");
-        await sleep(1000);
+        await sleep(5000);
         this.checkUpdate();
     }
 
     async checkUpdate() {
         if (dev) return this.startLauncher();
-        this.setStatus(`recherche de mise à jour...`);
+        this.setStatus(`Buscando Actualizaciones!`);
 
         ipcRenderer.invoke('update-app').then(err => {
             if (err.error) {
                 let error = err.message;
-                this.shutdown(`erreur lors de la recherche de mise à jour :<br>${error}`);
+                this.shutdown(`Ha Habido Un Error Al Actualizar Contacta Con White Rabbit :<br>${error}`);
             }
         })
 
         ipcRenderer.on('updateAvailable', () => {
-            this.setStatus(`Mise à jour disponible !`);
+            this.setStatus(`Descargando Actualizacion`);
             this.toggleProgress();
             ipcRenderer.send('start-update');
         })
@@ -74,7 +76,7 @@ class Splash {
             this.startLauncher();
         }).catch(e => {
             console.error(e);
-            return this.shutdown("Aucune connexion internet détectée,<br>veuillez réessayer ultérieurement.");
+            return this.shutdown("No Se Ha Podido Establecer Conexion Con White Rabbit");
         })
     }
 
@@ -85,10 +87,10 @@ class Splash {
     }
 
     shutdown(text) {
-        this.setStatus(`${text}<br>Arrêt dans 5s`);
+        this.setStatus(`${text}<br>Aplicando Actualizacion`);
         let i = 4;
         setInterval(() => {
-            this.setStatus(`${text}<br>Arrêt dans ${i--}s`);
+            this.setStatus(`${text}<br>Cerrando En ${i--}s`);
             if (i < 0) ipcRenderer.send('update-window-close');
         }, 1000);
     }

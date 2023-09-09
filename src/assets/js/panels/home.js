@@ -8,7 +8,7 @@
 import { logger, database, changePanel } from '../utils.js';
 
 const { Launch, Status } = require('minecraft-java-core');
-const { ipcRenderer } = require('electron');
+const { ipcRenderer, shell } = require('electron');
 const launch = new Launch();
 const pkg = require('../package.json');
 
@@ -144,7 +144,7 @@ class Home {
 
             launch.on('progress', (progress, size) => {
                 progressBar.style.display = "block"
-                document.querySelector(".text-download").innerHTML = `Téléchargement ${((progress / size) * 100).toFixed(0)}%`
+                document.querySelector(".text-download").innerHTML = `Descargando ${((progress / size) * 100).toFixed(0)}%`
                 ipcRenderer.send('main-window-progress', { progress, size })
                 progressBar.value = progress;
                 progressBar.max = size;
@@ -152,7 +152,7 @@ class Home {
 
             launch.on('check', (progress, size) => {
                 progressBar.style.display = "block"
-                document.querySelector(".text-download").innerHTML = `Vérification ${((progress / size) * 100).toFixed(0)}%`
+                document.querySelector(".text-download").innerHTML = `Verificando ${((progress / size) * 100).toFixed(0)}%`
                 progressBar.value = progress;
                 progressBar.max = size;
             });
@@ -170,7 +170,7 @@ class Home {
 
             launch.on('patch', patch => {
                 console.log(patch);
-                info.innerHTML = `Patch en cours...`
+                info.innerHTML = `Extrayendo`
             });
 
             launch.on('data', (e) => {
@@ -187,7 +187,7 @@ class Home {
                 progressBar.style.display = "none"
                 info.style.display = "none"
                 playBtn.style.display = "block"
-                info.innerHTML = `Vérification`
+                info.innerHTML = `Abriendo`
                 new logger('Launcher', '#7289da');
                 console.log('Close');
             });
@@ -220,8 +220,29 @@ class Home {
         document.querySelector('.settings-btn').addEventListener('click', () => {
             changePanel('settings');
         });
+        ('click', () => {;
+        });
+        document.querySelector('.Discord').addEventListener('click', () => {
+            this.openlink('https://discord.gg/QsqYr9xEKd');
+        })
+        document.querySelector('.Twitter').addEventListener('click', () => {
+            this.openlink('https://twitter.com/White_Rabbit_St');
+        })
+        document.querySelector('.Youtube').addEventListener('click', () => {
+            this.openlink('https://www.youtube.com/channel/UCDvnLEFluz42ephVqHQ_uCQ');
+        })
+        document.querySelector('.Instagram').addEventListener('click', () => {
+            this.openlink('https://www.paypal.com/paypalme/whiterabbittstudios');
+        })
+        document.querySelector('.Twitch').addEventListener('click', () => {
+            this.openlink('https://www.twitch.tv/white_rabbit_studios');
+        })
     }
 
+    openlink(url) {
+        shell.openExternal(url);
+    }
+    
     async getdate(e) {
         let date = new Date(e)
         let year = date.getFullYear()

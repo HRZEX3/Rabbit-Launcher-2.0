@@ -2,6 +2,32 @@
  * @author Luuxis
  * @license CC-BY-NC 4.0 - https://creativecommons.org/licenses/by-nc/4.0/
  */
+const DiscordRPC = require('discord-rpc');
+
+const clientId = '1135436708125618196'; // Reemplaza esto con tu propio ID de cliente
+
+DiscordRPC.register(clientId); // Registra la aplicación en Discord
+
+const rpcClient = new DiscordRPC.Client({ transport: 'ipc' }); // Crea una instancia de Client
+
+rpcClient.on('ready', () => { // Este evento se dispara cuando el cliente ha iniciado sesión y está listo para establecer Rich Presence
+  console.log('RPC is running');
+
+  rpcClient.setActivity({
+    details: 'Esperando En El Launcher',
+    startTimestamp: new Date(),
+    largeImageKey: 'rabbitlogo',
+    largeImageText: 'v1.2',
+    instance: false,
+    buttons: [
+        {
+            label: `Discord De White Rabbit Studios`,
+            url: `https://discord.gg/yDsHqZjMg6`,
+        },
+    ]
+});
+});
+rpcClient.login({ clientId }).catch(console.error); // Inicia sesión y establece Rich Presence
 
 const { app, ipcMain } = require('electron');
 const { Microsoft } = require('minecraft-java-core');

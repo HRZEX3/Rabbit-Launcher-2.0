@@ -1,14 +1,10 @@
-/**
- * @author Luuxis
- * @license CC-BY-NC 4.0 - https://creativecommons.org/licenses/by-nc/4.0/
- */
-
 'use strict';
 
 import { database, changePanel, accountSelect, Slider } from '../utils.js';
 const dataDirectory = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Application Support' : process.env.HOME)
 
 const os = require('os');
+const fs = require('fs');
 
 class Settings {
     static id = "settings";
@@ -19,8 +15,13 @@ class Settings {
         this.initTab();
         this.initAccount();
         this.initRam();
+        this.initJavaPath();
+        this.initJavaArgs();
+        this.initResolution();
         this.initLauncherSettings();
+        muteonload();
     }
+
 
     initAccount() {
         document.querySelector('.accounts').addEventListener('click', async(e) => {
@@ -31,17 +32,7 @@ class Settings {
                 console.log(uuid);
                 accountSelect(uuid);
                 this.database.update({ uuid: "1234", selected: uuid }, 'accounts-selected');
-            }
-
-            if (e.target.classList.contains("account-delete")) {
-                this.database.delete(e.target.parentElement.id, 'accounts');
-
-                document.querySelector('.accounts').removeChild(e.target.parentElement)
-                if (!document.querySelector('.accounts').children.length) {
-                    changePanel("login");
-                    return
-                }
-
+                
                 if (uuid === selectedaccount.value.selected) {
                     let uuid = (await this.database.getAll('accounts'))[0].value.uuid
                     this.database.update({
@@ -53,10 +44,6 @@ class Settings {
             }
         })
 
-        document.querySelector('.add-account').addEventListener('click', () => {
-            document.querySelector(".cancel-login").style.display = "contents";
-            changePanel("login");
-        })
     }
 
     async initRam() {
@@ -64,8 +51,8 @@ class Settings {
         let totalMem = Math.trunc(os.totalmem() / 1073741824 * 10) / 10;
         let freeMem = Math.trunc(os.freemem() / 1073741824 * 10) / 10;
 
-        document.getElementById("total-ram").textContent = `${totalMem} Go`;
-        document.getElementById("free-ram").textContent = `${freeMem} Go`;
+        document.getElementById("total-ram").textContent = `${totalMem} RAM`;
+        document.getElementById("free-ram").textContent = `${freeMem} RAM`;
 
         let sliderDiv = document.querySelector(".memory-slider");
         sliderDiv.setAttribute("max", Math.trunc((80 * totalMem) / 100));
@@ -76,19 +63,19 @@ class Settings {
         let minSpan = document.querySelector(".slider-touch-left span");
         let maxSpan = document.querySelector(".slider-touch-right span");
 
-        minSpan.setAttribute("value", `${ram.ramMin} Go`);
-        maxSpan.setAttribute("value", `${ram.ramMax} Go`);
+        minSpan.setAttribute("value", `${ram.ramMin} RAM`);
+        maxSpan.setAttribute("value", `${ram.ramMax} RAM`);
 
         slider.on("change", (min, max) => {
-            minSpan.setAttribute("value", `${min} Go`);
-            maxSpan.setAttribute("value", `${max} Go`);
+            minSpan.setAttribute("value", `${min} RAM`);
+            maxSpan.setAttribute("value", `${max} RAM`);
             this.database.update({ uuid: "1234", ramMin: `${min}`, ramMax: `${max}` }, 'ram')
         });
     }
 
     async initJavaPath() {
         let javaDatabase = (await this.database.get('1234', 'java-path'))?.value?.path;
-        let javaPath = javaDatabase ? javaDatabase : 'Utiliser la version de java livre avec le launcher';
+        let javaPath = javaDatabase ? javaDatabase : 'Usando la versión de Java Default';
         document.querySelector(".info-path").textContent = `${dataDirectory.replace(/\\/g, "/")}/${process.platform == 'darwin' ? this.config.dataDirectory : `.${this.config.dataDirectory}`}/runtime`;
 
         let path = document.querySelector(".path");
@@ -108,12 +95,12 @@ class Settings {
             if (file.value.replace(".exe", '').endsWith("java") || file.value.replace(".exe", '').endsWith("javaw")) {
                 this.database.update({ uuid: "1234", path: file.value }, 'java-path');
                 path.value = file.value.replace(/\\/g, "/");
-            } else alert("Le nom du fichier doit être java ou javaw");
+            } else alert('El nombre del archivo debe ser java o javaw.');
 
         });
 
         document.querySelector(".path-button-reset").addEventListener("click", () => {
-            path.value = 'Utiliser la version de java livre avec le launcher';
+            path.value = 'Usando la versión de Java Default.';
             file.value = '';
             this.database.update({ uuid: "1234", path: false }, 'java-path');
         });
@@ -132,7 +119,6 @@ class Settings {
                     argsInput = argsInput.value.trim().split(/\s+/)
                     for(let arg of argsInput) {
                         if (arg === '') continue;
-                        if (arg === '--server' || arg === '--port') continue;
                         args.push(arg);
                     }
                 }
@@ -144,7 +130,10 @@ class Settings {
 
     async initResolution() {
         let resolutionDatabase = (await this.database.get('1234', 'screen'))?.value?.screen;
-        let resolution = resolutionDatabase ? resolutionDatabase : { width: "1280", height: "720" };
+        let resolution = resolutionDatabase ? resolutionDatabase : { width: "1280", height: "720", fullscreen: false };
+
+        let fullscreen = document.getElementById("fullscreen");
+        fullscreen.checked = resolution.fullscreen;
         
         let width = document.querySelector(".width-size");
         width.value = resolution.width;
@@ -161,14 +150,27 @@ class Settings {
             height.value = resolution[1];
             this.database.update({ uuid: "1234", screen: { width: resolution[0], height: resolution[1] } }, 'screen');
         });
-    }
 
+        let widthElement = document.querySelector(".width-size");
+        let heightElement = document.querySelector(".height-size");
+
+        widthElement.addEventListener("change", () => {
+            this.database.update({ uuid: "1234", screen: { width: widthElement.value, height: heightElement.value } }, 'screen');
+        }
+        );
+
+        heightElement.addEventListener("change", () => {
+            this.database.update({ uuid: "1234", screen: { width: widthElement.value, height: heightElement.value } }, 'screen');
+        }
+        );
+    };
     async initLauncherSettings() {
         let launcherDatabase = (await this.database.get('1234', 'launcher'))?.value;
         let settingsLauncher = {
             uuid: "1234",
             launcher: {
-                close: launcherDatabase?.launcher?.close || 'close-launcher'
+                close: launcherDatabase?.launcher?.close || 'close-launcher',
+                autoConnect: launcherDatabase?.launcher?.autoConnect || false,
             }
         }
 
@@ -226,8 +228,14 @@ class Settings {
                     TabContent[j].classList.remove('active-tab-content');
                     TabBtn[j].classList.remove('active-tab-btn');
                 }
-                TabContent[i].classList.add('active-tab-content');
-                TabBtn[i].classList.add('active-tab-btn');
+                //add animation delay
+                TabContent[i].classList.add('transition');
+                setTimeout(() => {
+                    TabContent[i].classList.remove('transition');
+                    TabContent[i].classList.add('active-tab-content');
+                    TabBtn[i].classList.add('active-tab-btn');
+                }, 500);
+
             });
         }
 
@@ -254,17 +262,18 @@ class Settings {
             this.database.add({
                 uuid: "1234",
                 launcher: {
-                    close: 'close-launcher'
+                    close: 'close-launcher',
+                    autoConnect: false,
                 }
             }, 'launcher')
         }
 
         if (!(await this.database.getAll('ram')).length) {
-            this.database.add({ uuid: "1234", ramMin: "2", ramMax: "4" }, 'ram')
+            this.database.add({ uuid: "1234", ramMin: "1", ramMax: "2" }, 'ram')
         }
 
         if (!(await this.database.getAll('screen')).length) {
-            this.database.add({ uuid: "1234", screen: { width: "1280", height: "720" } }, 'screen')
+            this.database.add({ uuid: "1234", screen: { width: "1280", height: "720", fullscreen: false } }, 'screen')
         }
     }
 }
